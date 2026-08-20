@@ -1,2 +1,1 @@
-def main() -> None:
-    print("Hello from http-crud-api!")
+"""HTTP CRUD API"""
