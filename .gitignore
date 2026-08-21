@@ -11,3 +11,6 @@ wheels/
 
 # Development tools cache
 .ruff_cache/
+
+# Logs
+logs/
