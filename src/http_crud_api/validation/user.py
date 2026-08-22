@@ -10,12 +10,18 @@ class ValidationError(Exception):
 
 
 @dataclass(frozen=True, kw_only=True)
-class ValidationResult:
+class CreationResult:
     name: str
     email: str
 
 
-def validate_user_data(data: object) -> ValidationResult:
+@dataclass(frozen=True, kw_only=True)
+class UpdateResult:
+    name: str | None = None
+    email: str | None = None
+
+
+def validate_user_creation(data: object) -> CreationResult:
     if not isinstance(data, dict):
         raise ValidationError("Invalid JSON")
 
@@ -37,4 +43,39 @@ def validate_user_data(data: object) -> ValidationResult:
     if any(user.email == email for user in users):
         raise ValidationError("User with this email already exists")
 
-    return ValidationResult(email=email, name=name)
+    return CreationResult(email=email, name=name)
+
+
+def validate_user_update(data: object) -> UpdateResult:
+    if not isinstance(data, dict):
+        raise ValidationError("Invalid JSON")
+
+    has_name: bool = "name" in data
+    has_email: bool = "email" in data
+    if not has_name and not has_email:
+        raise ValidationError("Name or email required")
+
+    name = None
+    email = None
+
+    if has_name:
+        if not isinstance(data["name"], str):
+            raise ValidationError("Invalid name")
+        name = data["name"]
+
+    if has_email:
+        if not isinstance(data["email"], str):
+            raise ValidationError("Invalid email")
+        email = data["email"]
+
+    if email is not None:
+        try:
+            validated_email = validate_email(email)
+            email = validated_email.normalized
+        except EmailNotValidError:
+            raise ValidationError("Invalid email") from None
+
+    if any(user.email == email for user in users):
+        raise ValidationError("User with this email already exists")
+
+    return UpdateResult(name=name, email=email)

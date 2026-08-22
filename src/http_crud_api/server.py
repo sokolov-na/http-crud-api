@@ -7,7 +7,11 @@ from uuid import UUID
 
 from http_crud_api.models.user import User
 from http_crud_api.storage.users import users
-from http_crud_api.validation.user import ValidationError, validate_user_data
+from http_crud_api.validation.user import (
+    ValidationError,
+    validate_user_creation,
+    validate_user_update,
+)
 
 PORT: Final = 8080
 
@@ -37,7 +41,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.path.startswith("/users/")
                 and len(self.path.strip("/").split("/")) == 2
             ):
-                user_id_str = self.path.strip("/").split("/")[-1]
+                user_id_str: str = self.path.strip("/").split("/")[-1]
 
                 try:
                     user_id = UUID(user_id_str)
@@ -47,7 +51,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                     self.wfile.write(b"Invalid ID")
                     return
 
-                user = next(
+                user: User | None = next(
                     (user for user in users if user.id == user_id), None
                 )
 
@@ -90,7 +94,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                     return
 
                 try:
-                    result = validate_user_data(data)
+                    result = validate_user_creation(data)
                 except ValidationError as exc:
                     self.send_response(HTTPStatus.BAD_REQUEST)
                     self.end_headers()
@@ -106,6 +110,100 @@ class RequestHandler(BaseHTTPRequestHandler):
                 response = {"id": str(user.id), "status": "created"}
                 self.wfile.write(json.dumps(response).encode())
 
+            case _:
+                self.send_response(HTTPStatus.NOT_FOUND)
+                self.end_headers()
+                self.wfile.write(b"NOT FOUND")
+
+    def do_DELETE(self) -> None:
+        match self.path:
+            case self.path if (
+                self.path.startswith("/users/")
+                and len(self.path.strip("/").split("/")) == 2
+            ):
+                user_id_str: str = self.path.strip("/").split("/")[-1]
+
+                try:
+                    user_id = UUID(user_id_str)
+                except ValueError:
+                    self.send_response(HTTPStatus.BAD_REQUEST)
+                    self.end_headers()
+                    self.wfile.write(b"Invalid ID")
+                    return
+
+                user: User | None = next(
+                    (user for user in users if user.id == user_id), None
+                )
+
+                if user is None:
+                    self.send_response(HTTPStatus.NOT_FOUND)
+                    self.end_headers()
+                    self.wfile.write(b"User not found")
+                    return
+
+                users.remove(user)
+                self.send_response_only(HTTPStatus.OK)
+                self.end_headers()
+                self.wfile.write(f"User {user.name} was deleted".encode())
+            case _:
+                self.send_response(HTTPStatus.NOT_FOUND)
+                self.end_headers()
+                self.wfile.write(b"NOT FOUND")
+
+    def do_PUT(self) -> None:
+        match self.path:
+            case self.path if (
+                self.path.startswith("/users/")
+                and len(self.path.strip("/").split("/")) == 2
+            ):
+                user_id_str: str = self.path.strip("/").split("/")[-1]
+
+                try:
+                    user_id = UUID(user_id_str)
+                except ValueError:
+                    self.send_response(HTTPStatus.BAD_REQUEST)
+                    self.end_headers()
+                    self.wfile.write(b"Invalid ID")
+                    return
+
+                user: User | None = next(
+                    (user for user in users if user.id == user_id), None
+                )
+
+                if user is None:
+                    self.send_response(HTTPStatus.NOT_FOUND)
+                    self.end_headers()
+                    self.wfile.write(b"User not found")
+                    return
+
+                content_length = int(self.headers.get("Content-Length", 0))
+                body = self.rfile.read(content_length)
+
+                try:
+                    data = json.loads(body)
+                except json.JSONDecodeError:
+                    self.send_response(HTTPStatus.BAD_REQUEST)
+                    self.end_headers()
+                    self.wfile.write(b"Invalid JSON")
+                    return
+
+                try:
+                    result = validate_user_update(data)
+                except ValidationError as exc:
+                    self.send_response(HTTPStatus.BAD_REQUEST)
+                    self.end_headers()
+                    self.wfile.write(str(exc).encode())
+                    return
+
+                if result.name is not None:
+                    user.name = result.name
+
+                if result.email is not None:
+                    user.email = result.email
+
+                self.send_response_only(HTTPStatus.OK)
+                self.end_headers()
+                self.wfile.write(f"User {user.name} was updated".encode())
             case _:
                 self.send_response(HTTPStatus.NOT_FOUND)
                 self.end_headers()
