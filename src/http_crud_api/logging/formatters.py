@@ -1,17 +1,11 @@
 import json
 import logging
-import sys
 from typing import Final
 
 OPTIONAL_FIELDS: Final = {
     "method",
     "endpoint",
     "status_code",
-}
-
-EXC_LEVELS: Final = {
-    logging.ERROR,
-    logging.CRITICAL,
 }
 
 
@@ -36,8 +30,9 @@ class FileFormatter(logging.Formatter):
             }
         )
 
-        # Automatically include the active exception for error-level logs.
-        _, exc_value, _ = sys.exc_info()
-        if record.levelno in EXC_LEVELS and exc_value is not None:
-            data["exception"] = str(exc_value)
+        if record.exc_info:
+            exc_type, exc_value, _ = record.exc_info
+            if exc_type is not None and exc_value is not None:
+                data["exception_type"] = exc_type.__name__
+                data["exception_value"] = str(exc_value)
         return json.dumps(data)
