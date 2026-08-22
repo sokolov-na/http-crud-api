@@ -1,7 +1,10 @@
 import json
+import logging
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler
 from typing import Any
+
+logger = logging.getLogger("http_crud_api.http")
 
 JSONResponse = dict[str, Any] | list[dict[str, Any]]
 
@@ -16,6 +19,15 @@ def send_json(
     handler.end_headers()
     handler.wfile.write(json.dumps(data).encode())
 
+    logger.info(
+        "Request completed",
+        extra={
+            "method": handler.command,
+            "endpoint": handler.path,
+            "status_code": status_code,
+        },
+    )
+
 
 def send_response(
     handler: BaseHTTPRequestHandler,
@@ -28,11 +40,21 @@ def send_response(
     if message is not None:
         handler.wfile.write(message.encode())
 
+    if status_code >= 500:
+        log = logger.error
+    elif status_code >= 400:
+        log = logger.warning
+    else:
+        log = logger.info
 
-def send_not_found(handler: BaseHTTPRequestHandler) -> None:
-    handler.send_response(HTTPStatus.NOT_FOUND)
-    handler.end_headers()
-    handler.wfile.write(b"NOT FOUND")
+    log(
+        "Request completed",
+        extra={
+            "method": handler.command,
+            "endpoint": handler.path,
+            "status_code": status_code,
+        },
+    )
 
 
 def get_body(handler: BaseHTTPRequestHandler) -> bytes:

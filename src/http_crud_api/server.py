@@ -1,3 +1,4 @@
+import logging
 import socketserver
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler
@@ -9,7 +10,6 @@ from http_crud_api.http.utils import (
     get_body,
     is_user_id_path,
     send_json,
-    send_not_found,
     send_response,
 )
 from http_crud_api.models.user import User
@@ -21,6 +21,8 @@ from http_crud_api.validation.user import (
 )
 
 PORT: Final = 8080
+
+logger = logging.getLogger(__name__)
 
 
 class InvalidUserIDError(Exception):
@@ -101,7 +103,11 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.end_headers()
 
             case _:
-                send_not_found(self)
+                send_response(
+                    self,
+                    HTTPStatus.NOT_FOUND,
+                    message="NOT FOUND",
+                )
 
     def do_POST(self) -> None:
         match self.path:
@@ -136,7 +142,11 @@ class RequestHandler(BaseHTTPRequestHandler):
                 )
 
             case _:
-                send_not_found(self)
+                send_response(
+                    self,
+                    HTTPStatus.NOT_FOUND,
+                    message="NOT FOUND",
+                )
 
     def do_DELETE(self) -> None:
         match self.path:
@@ -159,7 +169,11 @@ class RequestHandler(BaseHTTPRequestHandler):
                     message=f"User {user.name} was deleted",
                 )
             case _:
-                send_not_found(self)
+                send_response(
+                    self,
+                    HTTPStatus.NOT_FOUND,
+                    message="NOT FOUND",
+                )
 
     def do_PUT(self) -> None:
         match self.path:
@@ -204,12 +218,19 @@ class RequestHandler(BaseHTTPRequestHandler):
                     message=f"User {user.name} was updated",
                 )
             case _:
-                send_not_found(self)
+                send_response(
+                    self,
+                    HTTPStatus.NOT_FOUND,
+                    message="NOT FOUND",
+                )
 
 
 def run_server() -> None:
+    logger.info("Server started")
     with socketserver.TCPServer(("", PORT), RequestHandler) as httpd:
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
+            logger.info("Server stopped")
+        finally:
             httpd.server_close()
