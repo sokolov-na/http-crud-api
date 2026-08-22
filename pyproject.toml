@@ -7,7 +7,9 @@ authors = [
     { name = "sokolov-na", email = "225724418+sokolov-na@users.noreply.github.com" }
 ]
 requires-python = ">=3.14"
-dependencies = []
+dependencies = [
+    "email-validator>=2.3.0",
+]
 
 [project.scripts]
 http-crud-api = "http_crud_api.main:main"
