@@ -3,6 +3,7 @@ import socketserver
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler
 from typing import Any, Final
+from uuid import UUID
 
 from http_crud_api.models.user import User
 from http_crud_api.storage.users import users
@@ -23,6 +24,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 data = {"status": "ok"}
                 self.wfile.write(json.dumps(data).encode())
+
             case "/users":
                 self.send_response(HTTPStatus.OK)
                 self.send_header("Content-Type", "application/json")
@@ -30,6 +32,40 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.wfile.write(
                     json.dumps([user.to_dict() for user in users]).encode()
                 )
+
+            case self.path if (
+                self.path.startswith("/users/")
+                and len(self.path.strip("/").split("/")) == 2
+            ):
+                user_id_str = self.path.strip("/").split("/")[-1]
+
+                try:
+                    user_id = UUID(user_id_str)
+                except ValueError:
+                    self.send_response(HTTPStatus.BAD_REQUEST)
+                    self.end_headers()
+                    self.wfile.write(b"Invalid ID")
+                    return
+
+                user = next(
+                    (user for user in users if user.id == user_id), None
+                )
+
+                if user is None:
+                    self.send_response(HTTPStatus.NOT_FOUND)
+                    self.end_headers()
+                    self.wfile.write(b"User not found")
+                    return
+
+                self.send_response(HTTPStatus.OK)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps(user.to_dict()).encode())
+
+            case "/favicon.ico":
+                self.send_response_only(HTTPStatus.NO_CONTENT)
+                self.end_headers()
+
             case _:
                 self.send_response(HTTPStatus.NOT_FOUND)
                 self.end_headers()
@@ -40,6 +76,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             case "/health":
                 self.send_response(HTTPStatus.METHOD_NOT_ALLOWED)
                 self.end_headers()
+
             case "/users":
                 content_length = int(self.headers.get("Content-Length", 0))
                 body = self.rfile.read(content_length)
@@ -64,9 +101,11 @@ class RequestHandler(BaseHTTPRequestHandler):
                 users.append(user)
 
                 self.send_response(HTTPStatus.CREATED)
+                self.send_header("Content-Type", "application/json")
                 self.end_headers()
                 response = {"id": str(user.id), "status": "created"}
                 self.wfile.write(json.dumps(response).encode())
+
             case _:
                 self.send_response(HTTPStatus.NOT_FOUND)
                 self.end_headers()
