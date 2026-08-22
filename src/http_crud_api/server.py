@@ -2,12 +2,19 @@ import json
 import socketserver
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler
-from typing import Final
+from typing import Any, Final
 
-PORT: Final = 9000
+from http_crud_api.models.user import User
+from http_crud_api.storage.users import users
+from http_crud_api.validation.user import ValidationError, validate_user_data
+
+PORT: Final = 8080
 
 
 class RequestHandler(BaseHTTPRequestHandler):
+    def log_message(self, format: str, *args: Any) -> None:
+        pass
+
     def do_GET(self) -> None:
         match self.path:
             case "/health":
@@ -16,6 +23,50 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 data = {"status": "ok"}
                 self.wfile.write(json.dumps(data).encode())
+            case "/users":
+                self.send_response(HTTPStatus.OK)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(
+                    json.dumps([user.to_dict() for user in users]).encode()
+                )
+            case _:
+                self.send_response(HTTPStatus.NOT_FOUND)
+                self.end_headers()
+                self.wfile.write(b"NOT FOUND")
+
+    def do_POST(self) -> None:
+        match self.path:
+            case "/health":
+                self.send_response(HTTPStatus.METHOD_NOT_ALLOWED)
+                self.end_headers()
+            case "/users":
+                content_length = int(self.headers.get("Content-Length", 0))
+                body = self.rfile.read(content_length)
+
+                try:
+                    data = json.loads(body)
+                except json.JSONDecodeError:
+                    self.send_response(HTTPStatus.BAD_REQUEST)
+                    self.end_headers()
+                    self.wfile.write(b"Invalid JSON")
+                    return
+
+                try:
+                    result = validate_user_data(data)
+                except ValidationError as exc:
+                    self.send_response(HTTPStatus.BAD_REQUEST)
+                    self.end_headers()
+                    self.wfile.write(str(exc).encode())
+                    return
+
+                user = User(name=result.name, email=result.email)
+                users.append(user)
+
+                self.send_response(HTTPStatus.CREATED)
+                self.end_headers()
+                response = {"id": str(user.id), "status": "created"}
+                self.wfile.write(json.dumps(response).encode())
             case _:
                 self.send_response(HTTPStatus.NOT_FOUND)
                 self.end_headers()
