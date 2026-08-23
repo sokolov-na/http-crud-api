@@ -20,7 +20,8 @@ def send_json(
     handler.wfile.write(json.dumps(data).encode())
 
     logger.info(
-        "Request completed",
+        f"Request {handler.command} {handler.path} "
+        f"completed with status {status_code}",
         extra={
             "method": handler.command,
             "endpoint": handler.path,
@@ -48,7 +49,8 @@ def send_response(
         log = logger.info
 
     log(
-        "Request completed",
+        f"Request {handler.command} {handler.path} "
+        f"completed with status {status_code}",
         extra={
             "method": handler.command,
             "endpoint": handler.path,
