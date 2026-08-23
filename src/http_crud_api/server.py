@@ -2,6 +2,7 @@ import logging
 import socketserver
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler
+from pathlib import Path
 from typing import Any, Final
 
 from http_crud_api.exceptions.service import (
@@ -15,9 +16,8 @@ from http_crud_api.http.utils import (
     send_json,
     send_response,
 )
-from http_crud_api.repositories.memory_user import InMemoryUserRepository
+from http_crud_api.repositories.json_user import JsonUserRepository
 from http_crud_api.service.user import UserService
-from http_crud_api.storage.users import users
 from http_crud_api.validation.request import validate_id_from_path
 from http_crud_api.validation.user import (
     ValidationError,
@@ -29,7 +29,9 @@ PORT: Final = 8080
 
 logger = logging.getLogger(__name__)
 
-repository = InMemoryUserRepository(users)
+path = Path("data/users.json")
+
+repository = JsonUserRepository(path)
 user_service = UserService(repository)
 
 
