@@ -71,8 +71,5 @@ def body_to_json(body: bytes) -> Any | None:
         return
 
 
-def is_user_id_path(handler: BaseHTTPRequestHandler) -> bool:
-    return (
-        handler.path.startswith("/users/")
-        and len(handler.path.strip("/").split("/")) == 2
-    )
+def is_user_id_path(path: str) -> bool:
+    return path.startswith("/users/") and len(path.strip("/").split("/")) == 2

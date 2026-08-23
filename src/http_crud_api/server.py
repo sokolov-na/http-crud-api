@@ -3,8 +3,11 @@ import socketserver
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler
 from typing import Any, Final
-from uuid import UUID
 
+from http_crud_api.exceptions.service import (
+    UserAlreadyExistsError,
+    UserNotFoundError,
+)
 from http_crud_api.http.utils import (
     body_to_json,
     get_body,
@@ -12,8 +15,10 @@ from http_crud_api.http.utils import (
     send_json,
     send_response,
 )
-from http_crud_api.models.user import User
+from http_crud_api.repositories.memory_user import InMemoryUserRepository
+from http_crud_api.service.user import UserService
 from http_crud_api.storage.users import users
+from http_crud_api.validation.request import validate_id_from_path
 from http_crud_api.validation.user import (
     ValidationError,
     validate_user_creation,
@@ -24,52 +29,8 @@ PORT: Final = 8080
 
 logger = logging.getLogger(__name__)
 
-
-class InvalidUserIDError(Exception):
-    pass
-
-
-class UserNotFoundError(Exception):
-    pass
-
-
-def get_user_id(handler: BaseHTTPRequestHandler) -> UUID | None:
-    user_id_str: str = handler.path.strip("/").split("/")[-1]
-
-    try:
-        user_id = UUID(user_id_str)
-    except ValueError:
-        return
-
-    return user_id
-
-
-def get_user_by_id(user_id: UUID, *, storage: list[User]) -> User | None:
-    return next((user for user in storage if user.id == user_id), None)
-
-
-def delete_user(user: User, *, storage: list[User]) -> None:
-    storage.remove(user)
-
-
-def add_user(user: User, *, storage: list[User]) -> None:
-    storage.append(user)
-
-
-def get_user_from_request(
-    handler: BaseHTTPRequestHandler,
-) -> User:
-    user_id = get_user_id(handler)
-
-    if user_id is None:
-        raise InvalidUserIDError("Invalid ID")
-
-    user = get_user_by_id(user_id, storage=users)
-
-    if user is None:
-        raise UserNotFoundError("User not found")
-
-    return user
+repository = InMemoryUserRepository(users)
+user_service = UserService(repository)
 
 
 class RequestHandler(BaseHTTPRequestHandler):
@@ -82,25 +43,35 @@ class RequestHandler(BaseHTTPRequestHandler):
                 send_json(self, {"status": "ok"})
 
             case "/users":
-                send_json(self, [user.to_dict() for user in users])
+                send_json(
+                    self, [user.to_dict() for user in user_service.get_all()]
+                )
 
-            case self.path if is_user_id_path(self):
+            case self.path if is_user_id_path(self.path):
                 try:
-                    user = get_user_from_request(self)
-                except InvalidUserIDError as exc:
+                    user_id = validate_id_from_path(self.path)
+                except ValidationError as exc:
                     send_response(
-                        self, HTTPStatus.BAD_REQUEST, message=str(exc)
+                        self,
+                        HTTPStatus.BAD_REQUEST,
+                        message=str(exc),
                     )
                     return
+
+                try:
+                    user = user_service.get_by_id(user_id)
                 except UserNotFoundError as exc:
-                    send_response(self, HTTPStatus.NOT_FOUND, message=str(exc))
+                    send_response(
+                        self,
+                        HTTPStatus.NOT_FOUND,
+                        message=str(exc),
+                    )
                     return
 
                 send_json(self, user.to_dict())
 
             case "/favicon.ico":
-                self.send_response_only(HTTPStatus.NO_CONTENT)
-                self.end_headers()
+                send_response(self, HTTPStatus.NO_CONTENT)
 
             case _:
                 send_response(
@@ -132,8 +103,13 @@ class RequestHandler(BaseHTTPRequestHandler):
                     )
                     return
 
-                user = User(name=result.name, email=result.email)
-                add_user(user, storage=users)
+                try:
+                    user = user_service.create(
+                        name=result.name, email=result.email
+                    )
+                except UserAlreadyExistsError as exc:
+                    send_response(self, HTTPStatus.CONFLICT, message=str(exc))
+                    return
 
                 send_json(
                     self,
@@ -150,19 +126,29 @@ class RequestHandler(BaseHTTPRequestHandler):
 
     def do_DELETE(self) -> None:
         match self.path:
-            case self.path if is_user_id_path(self):
+            case "/health":
+                send_response(self, HTTPStatus.METHOD_NOT_ALLOWED)
+            case self.path if is_user_id_path(self.path):
                 try:
-                    user = get_user_from_request(self)
-                except InvalidUserIDError as exc:
+                    user_id = validate_id_from_path(self.path)
+                except ValidationError as exc:
                     send_response(
-                        self, HTTPStatus.BAD_REQUEST, message=str(exc)
+                        self,
+                        HTTPStatus.BAD_REQUEST,
+                        message=str(exc),
                     )
                     return
+
+                try:
+                    user = user_service.delete(user_id)
                 except UserNotFoundError as exc:
-                    send_response(self, HTTPStatus.NOT_FOUND, message=str(exc))
+                    send_response(
+                        self,
+                        HTTPStatus.NOT_FOUND,
+                        message=str(exc),
+                    )
                     return
 
-                delete_user(user, storage=users)
                 send_response(
                     self,
                     HTTPStatus.OK,
@@ -177,16 +163,17 @@ class RequestHandler(BaseHTTPRequestHandler):
 
     def do_PUT(self) -> None:
         match self.path:
-            case self.path if is_user_id_path(self):
+            case "/health":
+                send_response(self, HTTPStatus.METHOD_NOT_ALLOWED)
+            case self.path if is_user_id_path(self.path):
                 try:
-                    user = get_user_from_request(self)
-                except InvalidUserIDError as exc:
+                    user_id = validate_id_from_path(self.path)
+                except ValidationError as exc:
                     send_response(
-                        self, HTTPStatus.BAD_REQUEST, message=str(exc)
+                        self,
+                        HTTPStatus.BAD_REQUEST,
+                        message=str(exc),
                     )
-                    return
-                except UserNotFoundError as exc:
-                    send_response(self, HTTPStatus.NOT_FOUND, message=str(exc))
                     return
 
                 body = get_body(self)
@@ -206,11 +193,20 @@ class RequestHandler(BaseHTTPRequestHandler):
                     )
                     return
 
-                if result.name is not None:
-                    user.name = result.name
-
-                if result.email is not None:
-                    user.email = result.email
+                try:
+                    user = user_service.update(
+                        user_id, name=result.name, email=result.email
+                    )
+                except UserAlreadyExistsError as exc:
+                    send_response(self, HTTPStatus.CONFLICT, message=str(exc))
+                    return
+                except UserNotFoundError as exc:
+                    send_response(
+                        self,
+                        HTTPStatus.NOT_FOUND,
+                        message=str(exc),
+                    )
+                    return
 
                 send_response(
                     self,

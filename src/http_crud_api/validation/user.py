@@ -2,11 +2,7 @@ from dataclasses import dataclass
 
 from email_validator import EmailNotValidError, validate_email
 
-from http_crud_api.storage.users import users
-
-
-class ValidationError(Exception):
-    pass
+from http_crud_api.exceptions.validation import ValidationError
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -21,6 +17,14 @@ class UpdateResult:
     email: str | None = None
 
 
+def validate_email_address(user_email: str) -> str:
+    try:
+        validated_email = validate_email(user_email)
+        return validated_email.normalized
+    except EmailNotValidError:
+        raise ValidationError("Invalid email") from None
+
+
 def validate_user_creation(data: object) -> CreationResult:
     if not isinstance(data, dict):
         raise ValidationError("Invalid JSON")
@@ -31,19 +35,7 @@ def validate_user_creation(data: object) -> CreationResult:
     if not isinstance(data["name"], str) or not isinstance(data["email"], str):
         raise ValidationError("Invalid name or email")
 
-    email = data["email"]
-    name = data["name"]
-
-    try:
-        validated_email = validate_email(email)
-        email = validated_email.normalized
-    except EmailNotValidError:
-        raise ValidationError("Invalid email") from None
-
-    if any(user.email == email for user in users):
-        raise ValidationError("User with this email already exists")
-
-    return CreationResult(email=email, name=name)
+    return CreationResult(email=data["email"], name=data["name"])
 
 
 def validate_user_update(data: object) -> UpdateResult:
@@ -67,15 +59,5 @@ def validate_user_update(data: object) -> UpdateResult:
         if not isinstance(data["email"], str):
             raise ValidationError("Invalid email")
         email = data["email"]
-
-    if email is not None:
-        try:
-            validated_email = validate_email(email)
-            email = validated_email.normalized
-        except EmailNotValidError:
-            raise ValidationError("Invalid email") from None
-
-    if any(user.email == email for user in users):
-        raise ValidationError("User with this email already exists")
 
     return UpdateResult(name=name, email=email)
