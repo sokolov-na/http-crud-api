@@ -11,7 +11,7 @@ def setup_logging() -> None:
 
     path = Path(LOG_DIR)
 
-    path.mkdir(exist_ok=True)
+    path.mkdir(parents=True, exist_ok=True)
 
     console_handler = logging.StreamHandler()
     file_handler = logging.FileHandler(path / LOG_FILE, encoding="utf-8")
