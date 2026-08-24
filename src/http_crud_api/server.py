@@ -1,7 +1,9 @@
 import logging
 import socketserver
+from functools import partial
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler
+from json import JSONDecodeError
 from pathlib import Path
 from typing import Any, Final
 
@@ -29,13 +31,14 @@ PORT: Final = 8080
 
 logger = logging.getLogger(__name__)
 
-path = Path("data/users.json")
-
-repository = JsonUserRepository(path)
-user_service = UserService(repository)
-
 
 class RequestHandler(BaseHTTPRequestHandler):
+    def __init__(
+        self, *args: Any, user_service: UserService, **kwargs: Any
+    ) -> None:
+        self.user_service = user_service
+        super().__init__(*args, **kwargs)
+
     def log_message(self, format: str, *args: Any) -> None:
         pass
 
@@ -46,7 +49,8 @@ class RequestHandler(BaseHTTPRequestHandler):
 
             case "/users":
                 send_json(
-                    self, [user.to_dict() for user in user_service.get_all()]
+                    self,
+                    [user.to_dict() for user in self.user_service.get_all()],
                 )
 
             case self.path if is_user_id_path(self.path):
@@ -61,7 +65,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                     return
 
                 try:
-                    user = user_service.get_by_id(user_id)
+                    user = self.user_service.get_by_id(user_id)
                 except UserNotFoundError as exc:
                     send_response(
                         self,
@@ -106,7 +110,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                     return
 
                 try:
-                    user = user_service.create(
+                    user = self.user_service.create(
                         name=result.name, email=result.email
                     )
                 except UserAlreadyExistsError as exc:
@@ -142,7 +146,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                     return
 
                 try:
-                    user = user_service.delete(user_id)
+                    user = self.user_service.delete(user_id)
                 except UserNotFoundError as exc:
                     send_response(
                         self,
@@ -196,7 +200,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                     return
 
                 try:
-                    user = user_service.update(
+                    user = self.user_service.update(
                         user_id, name=result.name, email=result.email
                     )
                 except UserAlreadyExistsError as exc:
@@ -224,8 +228,16 @@ class RequestHandler(BaseHTTPRequestHandler):
 
 
 def run_server() -> None:
+    try:
+        repository = JsonUserRepository(Path("data/users.json"))
+    except JSONDecodeError:
+        logger.critical("Failed to load user data", exc_info=True)
+        return
+
+    handler = partial(RequestHandler, user_service=UserService(repository))
+
     logger.info("Server started")
-    with socketserver.TCPServer(("", PORT), RequestHandler) as httpd:
+    with socketserver.TCPServer(("", PORT), handler) as httpd:
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
