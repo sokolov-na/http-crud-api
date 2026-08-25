@@ -1,4 +1,4 @@
-from typing import Any, cast
+from typing import Any
 
 from email_validator import EmailNotValidError, validate_email
 
@@ -24,7 +24,7 @@ def validate_user_create_data(data: dict[Any, Any]) -> UserCreateData:
     if not isinstance(data["email"], str):
         raise ValidationError("Invalid email") from None
 
-    return {"name": data["name"], "email": data["email"]}
+    return UserCreateData(name=data["name"], email=data["email"])
 
 
 def validate_user_update_data(data: dict[Any, Any]) -> UserUpdateData:
@@ -34,7 +34,7 @@ def validate_user_update_data(data: dict[Any, Any]) -> UserUpdateData:
     if not has_name and not has_email:
         raise ValidationError("Name or email required") from None
 
-    result = {}
+    result = UserUpdateData()
 
     if has_name:
         if not isinstance(data["name"], str):
@@ -48,4 +48,4 @@ def validate_user_update_data(data: dict[Any, Any]) -> UserUpdateData:
 
         result["email"] = data["email"]
 
-    return cast(UserUpdateData, result)
+    return result

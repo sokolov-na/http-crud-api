@@ -76,7 +76,7 @@ class UserService:
         try:
             validated_data: UserUpdateData = validate_user_update_data(data)
         except ValidationError:
-            logger.exception("User updading failed")
+            logger.exception("User updating failed")
             raise
 
         if "name" in validated_data:
