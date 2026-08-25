@@ -11,6 +11,7 @@ from http_crud_api.exceptions.service import (
     UserAlreadyExistsError,
     UserNotFoundError,
 )
+from http_crud_api.exceptions.validation import ValidationError
 from http_crud_api.http.utils import (
     body_to_json,
     get_body,
@@ -20,12 +21,8 @@ from http_crud_api.http.utils import (
 )
 from http_crud_api.repositories.json_user import JsonUserRepository
 from http_crud_api.service.user import UserService
+from http_crud_api.validation.common import validate_json_object
 from http_crud_api.validation.request import validate_id_from_path
-from http_crud_api.validation.user import (
-    ValidationError,
-    validate_user_creation,
-    validate_user_update,
-)
 
 PORT: Final = 8080
 
@@ -95,14 +92,8 @@ class RequestHandler(BaseHTTPRequestHandler):
                 body = get_body(self)
                 data = body_to_json(body)
 
-                if data is None:
-                    send_response(
-                        self, HTTPStatus.BAD_REQUEST, message="Invalid JSON"
-                    )
-                    return
-
                 try:
-                    result = validate_user_creation(data)
+                    validated_data = validate_json_object(data)
                 except ValidationError as exc:
                     send_response(
                         self, HTTPStatus.BAD_REQUEST, message=str(exc)
@@ -110,11 +101,14 @@ class RequestHandler(BaseHTTPRequestHandler):
                     return
 
                 try:
-                    user = self.user_service.create(
-                        name=result.name, email=result.email
-                    )
+                    user = self.user_service.create(validated_data)
                 except UserAlreadyExistsError as exc:
                     send_response(self, HTTPStatus.CONFLICT, message=str(exc))
+                    return
+                except ValidationError as exc:
+                    send_response(
+                        self, HTTPStatus.BAD_REQUEST, message=str(exc)
+                    )
                     return
 
                 send_json(
@@ -185,14 +179,8 @@ class RequestHandler(BaseHTTPRequestHandler):
                 body = get_body(self)
                 data = body_to_json(body)
 
-                if data is None:
-                    send_response(
-                        self, HTTPStatus.BAD_REQUEST, message="Invalid JSON"
-                    )
-                    return
-
                 try:
-                    result = validate_user_update(data)
+                    validated_data = validate_json_object(data)
                 except ValidationError as exc:
                     send_response(
                         self, HTTPStatus.BAD_REQUEST, message=str(exc)
@@ -201,7 +189,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 
                 try:
                     user = self.user_service.update(
-                        user_id, name=result.name, email=result.email
+                        validated_data, user_id=user_id
                     )
                 except UserAlreadyExistsError as exc:
                     send_response(self, HTTPStatus.CONFLICT, message=str(exc))
@@ -211,6 +199,11 @@ class RequestHandler(BaseHTTPRequestHandler):
                         self,
                         HTTPStatus.NOT_FOUND,
                         message=str(exc),
+                    )
+                    return
+                except ValidationError as exc:
+                    send_response(
+                        self, HTTPStatus.BAD_REQUEST, message=str(exc)
                     )
                     return
 

@@ -1,12 +1,22 @@
+import logging
+from typing import Any
 from uuid import UUID
 
 from http_crud_api.exceptions.service import (
     UserAlreadyExistsError,
     UserNotFoundError,
 )
+from http_crud_api.exceptions.validation import ValidationError
 from http_crud_api.models.user import User
 from http_crud_api.repositories.user import UserRepository
-from http_crud_api.validation.user import validate_email_address
+from http_crud_api.schemas.user import UserCreateData, UserUpdateData
+from http_crud_api.validation.user import (
+    validate_email_address,
+    validate_user_create_data,
+    validate_user_update_data,
+)
+
+logger = logging.getLogger(__name__)
 
 
 class UserService:
@@ -32,37 +42,64 @@ class UserService:
         user: User | None = self.__repository.get_by_id(user_id)
 
         if user is None:
-            raise UserNotFoundError(f"User with ID {user_id} does not exist")
+            exc = UserNotFoundError(f"User with ID {user_id} does not exist")
+            logger.error("User lookup failed", exc_info=exc)
+            raise exc
 
         return user
 
-    def create(self, *, name: str, email: str) -> User:
-        user = User(name=name, email=self.__validate_email(email))
+    def create(self, data: dict[Any, Any]) -> User:
+        try:
+            validated_data: UserCreateData = validate_user_create_data(data)
+        except ValidationError:
+            logger.exception("User creation failed")
+            raise
+
+        try:
+            email = self.__validate_email(validated_data["email"])
+        except UserAlreadyExistsError, ValidationError:
+            logger.exception("User creation failed")
+            raise
+
+        name = validated_data["name"]
+
+        user = User(name=name, email=email)
 
         self.__repository.add(user)
 
+        logger.info("User %s created", user.id)
         return user
 
-    def update(
-        self,
-        user_id: UUID,
-        *,
-        name: str | None = None,
-        email: str | None = None,
-    ) -> User:
+    def update(self, data: dict[Any, Any], *, user_id: UUID) -> User:
         user: User = self.get_by_id(user_id)
 
-        if email is not None:
-            user.email = self.__validate_email(email, exclude_user_id=user_id)
+        try:
+            validated_data: UserUpdateData = validate_user_update_data(data)
+        except ValidationError:
+            logger.exception("User updading failed")
+            raise
 
-        if name is not None:
-            user.name = name
+        if "name" in validated_data:
+            user.name = validated_data["name"]
 
+        if "email" in validated_data:
+            try:
+                email = self.__validate_email(
+                    validated_data["email"], exclude_user_id=user_id
+                )
+            except UserAlreadyExistsError, ValidationError:
+                logger.exception("User updating failed")
+                raise
+
+            user.email = email
+
+        logger.info("User %s updated", user.id)
         return user
 
     def delete(self, user_id: UUID) -> User:
-        user = self.get_by_id(user_id)
+        user: User = self.get_by_id(user_id)
 
         self.__repository.delete(user)
 
+        logger.info("User %s deleted", user.id)
         return user
