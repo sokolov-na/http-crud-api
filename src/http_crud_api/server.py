@@ -12,6 +12,14 @@ from http_crud_api.exceptions.service import (
     UserNotFoundError,
 )
 from http_crud_api.exceptions.validation import ValidationError
+from http_crud_api.http.response import send_response_new
+from http_crud_api.http.routes import (
+    get_favicon,
+    get_user,
+    get_users,
+    health,
+    not_found,
+)
 from http_crud_api.http.utils import (
     body_to_json,
     get_body,
@@ -42,46 +50,21 @@ class RequestHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         match self.path:
             case "/health":
-                send_json(self, {"status": "ok"})
+                response = health()
 
             case "/users":
-                send_json(
-                    self,
-                    [user.to_dict() for user in self.user_service.get_all()],
-                )
+                response = get_users(self.user_service)
 
             case self.path if is_user_id_path(self.path):
-                try:
-                    user_id = validate_id_from_path(self.path)
-                except ValidationError as exc:
-                    send_response(
-                        self,
-                        HTTPStatus.BAD_REQUEST,
-                        message=str(exc),
-                    )
-                    return
-
-                try:
-                    user = self.user_service.get_by_id(user_id)
-                except UserNotFoundError as exc:
-                    send_response(
-                        self,
-                        HTTPStatus.NOT_FOUND,
-                        message=str(exc),
-                    )
-                    return
-
-                send_json(self, user.to_dict())
+                response = get_user(self.path, self.user_service)
 
             case "/favicon.ico":
-                send_response(self, HTTPStatus.NO_CONTENT)
+                response = get_favicon()
 
             case _:
-                send_response(
-                    self,
-                    HTTPStatus.NOT_FOUND,
-                    message="NOT FOUND",
-                )
+                response = not_found()
+
+        send_response_new(self, response)
 
     def do_POST(self) -> None:
         match self.path:
