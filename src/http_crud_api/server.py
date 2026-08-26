@@ -1,36 +1,26 @@
 import logging
 import socketserver
 from functools import partial
-from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler
 from json import JSONDecodeError
 from pathlib import Path
 from typing import Any, Final
 
-from http_crud_api.exceptions.service import (
-    UserAlreadyExistsError,
-    UserNotFoundError,
-)
-from http_crud_api.exceptions.validation import ValidationError
-from http_crud_api.http.response import send_response_new
+from http_crud_api.http.response import send_response
 from http_crud_api.http.routes import (
+    create_user,
+    delete_user,
     get_favicon,
     get_user,
     get_users,
     health,
+    not_allowed,
     not_found,
+    update_user,
 )
-from http_crud_api.http.utils import (
-    body_to_json,
-    get_body,
-    is_user_id_path,
-    send_json,
-    send_response,
-)
+from http_crud_api.http.utils import get_body, is_user_id_path
 from http_crud_api.repositories.json_user import JsonUserRepository
 from http_crud_api.service.user import UserService
-from http_crud_api.validation.common import validate_json_object
-from http_crud_api.validation.request import validate_id_from_path
 
 PORT: Final = 8080
 
@@ -64,143 +54,44 @@ class RequestHandler(BaseHTTPRequestHandler):
             case _:
                 response = not_found()
 
-        send_response_new(self, response)
+        send_response(self, response)
 
     def do_POST(self) -> None:
         match self.path:
             case "/health":
-                send_response(self, HTTPStatus.METHOD_NOT_ALLOWED)
+                response = not_allowed()
 
             case "/users":
                 body = get_body(self)
-                data = body_to_json(body)
-
-                try:
-                    validated_data = validate_json_object(data)
-                except ValidationError as exc:
-                    send_response(
-                        self, HTTPStatus.BAD_REQUEST, message=str(exc)
-                    )
-                    return
-
-                try:
-                    user = self.user_service.create(validated_data)
-                except UserAlreadyExistsError as exc:
-                    send_response(self, HTTPStatus.CONFLICT, message=str(exc))
-                    return
-                except ValidationError as exc:
-                    send_response(
-                        self, HTTPStatus.BAD_REQUEST, message=str(exc)
-                    )
-                    return
-
-                send_json(
-                    self,
-                    {"id": str(user.id), "status": "created"},
-                    HTTPStatus.CREATED,
-                )
+                response = create_user(body, self.user_service)
 
             case _:
-                send_response(
-                    self,
-                    HTTPStatus.NOT_FOUND,
-                    message="NOT FOUND",
-                )
+                response = not_found()
+
+        send_response(self, response)
 
     def do_DELETE(self) -> None:
         match self.path:
             case "/health":
-                send_response(self, HTTPStatus.METHOD_NOT_ALLOWED)
+                response = not_allowed()
             case self.path if is_user_id_path(self.path):
-                try:
-                    user_id = validate_id_from_path(self.path)
-                except ValidationError as exc:
-                    send_response(
-                        self,
-                        HTTPStatus.BAD_REQUEST,
-                        message=str(exc),
-                    )
-                    return
-
-                try:
-                    user = self.user_service.delete(user_id)
-                except UserNotFoundError as exc:
-                    send_response(
-                        self,
-                        HTTPStatus.NOT_FOUND,
-                        message=str(exc),
-                    )
-                    return
-
-                send_response(
-                    self,
-                    HTTPStatus.OK,
-                    message=f"User {user.name} was deleted",
-                )
+                response = delete_user(self.path, self.user_service)
             case _:
-                send_response(
-                    self,
-                    HTTPStatus.NOT_FOUND,
-                    message="NOT FOUND",
-                )
+                response = not_found()
+
+        send_response(self, response)
 
     def do_PUT(self) -> None:
         match self.path:
             case "/health":
-                send_response(self, HTTPStatus.METHOD_NOT_ALLOWED)
+                response = not_allowed()
             case self.path if is_user_id_path(self.path):
-                try:
-                    user_id = validate_id_from_path(self.path)
-                except ValidationError as exc:
-                    send_response(
-                        self,
-                        HTTPStatus.BAD_REQUEST,
-                        message=str(exc),
-                    )
-                    return
-
                 body = get_body(self)
-                data = body_to_json(body)
-
-                try:
-                    validated_data = validate_json_object(data)
-                except ValidationError as exc:
-                    send_response(
-                        self, HTTPStatus.BAD_REQUEST, message=str(exc)
-                    )
-                    return
-
-                try:
-                    user = self.user_service.update(
-                        validated_data, user_id=user_id
-                    )
-                except UserAlreadyExistsError as exc:
-                    send_response(self, HTTPStatus.CONFLICT, message=str(exc))
-                    return
-                except UserNotFoundError as exc:
-                    send_response(
-                        self,
-                        HTTPStatus.NOT_FOUND,
-                        message=str(exc),
-                    )
-                    return
-                except ValidationError as exc:
-                    send_response(
-                        self, HTTPStatus.BAD_REQUEST, message=str(exc)
-                    )
-                    return
-
-                send_response(
-                    self,
-                    HTTPStatus.OK,
-                    message=f"User {user.name} was updated",
-                )
+                response = update_user(self.path, body, self.user_service)
             case _:
-                send_response(
-                    self,
-                    HTTPStatus.NOT_FOUND,
-                    message="NOT FOUND",
-                )
+                response = not_found()
+
+        send_response(self, response)
 
 
 def run_server() -> None:

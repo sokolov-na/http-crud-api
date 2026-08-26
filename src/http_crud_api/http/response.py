@@ -22,28 +22,28 @@ class Response:
 logger = logging.getLogger("http_crud_api.http")
 
 
-def send_response_new(
-    handler: BaseHTTPRequestHandler, response: Response
-) -> None:
-    if response.status_code == HTTPStatus.NO_CONTENT:
+def send_response(handler: BaseHTTPRequestHandler, response: Response) -> None:
+    if response.status_code is HTTPStatus.NO_CONTENT or (
+        response.status_code is HTTPStatus.METHOD_NOT_ALLOWED
+        and response.data is None
+    ):
         handler.send_response_only(response.status_code)
         handler.end_headers()
-        return
+    else:
+        if response.data is None:
+            raise ValueError
 
-    if response.data is None:
-        raise ValueError
-
-    match response.format:
-        case ResponseFormat.JSON:
-            handler.send_response(response.status_code)
-            handler.send_header("Content-Type", response.format.value)
-            handler.end_headers()
-            handler.wfile.write(json.dumps(response.data).encode())
-        case ResponseFormat.TEXT:
-            handler.send_response(response.status_code)
-            handler.send_header("Content-Type", response.format.value)
-            handler.end_headers()
-            handler.wfile.write(response.data.encode())
+        match response.format:
+            case ResponseFormat.JSON:
+                handler.send_response(response.status_code)
+                handler.send_header("Content-Type", response.format.value)
+                handler.end_headers()
+                handler.wfile.write(json.dumps(response.data).encode())
+            case ResponseFormat.TEXT:
+                handler.send_response(response.status_code)
+                handler.send_header("Content-Type", response.format.value)
+                handler.end_headers()
+                handler.wfile.write(response.data.encode())
 
     if response.status_code >= 500:
         log = logger.error
