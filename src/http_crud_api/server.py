@@ -6,7 +6,7 @@ from json import JSONDecodeError
 from pathlib import Path
 from typing import Any, Final
 
-from http_crud_api.http.response import send_response
+from http_crud_api.http.exceptions import handle_exception
 from http_crud_api.http.routes import (
     create_user,
     delete_user,
@@ -38,60 +38,72 @@ class RequestHandler(BaseHTTPRequestHandler):
         pass
 
     def do_GET(self) -> None:
-        match self.path:
-            case "/health":
-                response = health()
+        try:
+            match self.path:
+                case "/health":
+                    response = health()
 
-            case "/users":
-                response = get_users(self.user_service)
+                case "/users":
+                    response = get_users(self.user_service)
 
-            case self.path if is_user_id_path(self.path):
-                response = get_user(self.path, self.user_service)
+                case self.path if is_user_id_path(self.path):
+                    response = get_user(self.path, self.user_service)
 
-            case "/favicon.ico":
-                response = get_favicon()
+                case "/favicon.ico":
+                    response = get_favicon()
 
-            case _:
-                response = not_found()
+                case _:
+                    response = not_found()
+        except Exception as exc:
+            response = handle_exception(exc)
 
-        send_response(self, response)
+        response.send(self)
 
     def do_POST(self) -> None:
-        match self.path:
-            case "/health":
-                response = not_allowed()
+        try:
+            match self.path:
+                case "/health":
+                    response = not_allowed()
 
-            case "/users":
-                body = get_body(self)
-                response = create_user(body, self.user_service)
+                case "/users":
+                    body = get_body(self)
+                    response = create_user(body, self.user_service)
 
-            case _:
-                response = not_found()
+                case _:
+                    response = not_found()
+        except Exception as exc:
+            response = handle_exception(exc)
 
-        send_response(self, response)
+        response.send(self)
 
     def do_DELETE(self) -> None:
-        match self.path:
-            case "/health":
-                response = not_allowed()
-            case self.path if is_user_id_path(self.path):
-                response = delete_user(self.path, self.user_service)
-            case _:
-                response = not_found()
+        try:
+            match self.path:
+                case "/health":
+                    response = not_allowed()
+                case self.path if is_user_id_path(self.path):
+                    response = delete_user(self.path, self.user_service)
+                case _:
+                    response = not_found()
+        except Exception as exc:
+            response = handle_exception(exc)
 
-        send_response(self, response)
+        response.send(self)
 
     def do_PUT(self) -> None:
-        match self.path:
-            case "/health":
-                response = not_allowed()
-            case self.path if is_user_id_path(self.path):
-                body = get_body(self)
-                response = update_user(self.path, body, self.user_service)
-            case _:
-                response = not_found()
+        try:
+            match self.path:
+                case "/health":
+                    response = not_allowed()
+                case self.path if is_user_id_path(self.path):
+                    body = get_body(self)
+                    response = update_user(self.path, body, self.user_service)
+                case _:
+                    response = not_found()
+        except Exception as exc:
+            response = handle_exception(exc)
 
-        send_response(self, response)
+        response.send(self)
 
 
 def run_server() -> None:

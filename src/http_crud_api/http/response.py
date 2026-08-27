@@ -1,63 +1,88 @@
 import json
 import logging
-from dataclasses import dataclass
 from enum import Enum
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler
-from typing import Any
+from typing import Any, Self
+
+logger = logging.getLogger("http_crud_api.http")
 
 
 class ResponseFormat(Enum):
     JSON = "application/json"
     TEXT = "text/plain"
+    EMPTY = None
 
 
-@dataclass(frozen=True)
 class Response:
-    status_code: HTTPStatus
-    data: Any | None = None
-    format: ResponseFormat = ResponseFormat.JSON
+    def __init__(
+        self,
+        status_code: HTTPStatus,
+        data: Any | None = None,
+        format: ResponseFormat = ResponseFormat.EMPTY,
+    ) -> None:
+        self.__status_code = status_code
+        self.__data = data
+        self.__format = format
 
+    def __log(self, handler: BaseHTTPRequestHandler) -> None:
+        if self.__status_code >= 500:
+            log = logger.error
+        elif self.__status_code >= 400:
+            log = logger.warning
+        else:
+            log = logger.info
 
-logger = logging.getLogger("http_crud_api.http")
+        log(
+            f"Request {handler.command} {handler.path} "
+            f"completed with status {self.__status_code}",
+            extra={
+                "method": handler.command,
+                "endpoint": handler.path,
+                "status_code": self.__status_code,
+            },
+        )
 
-
-def send_response(handler: BaseHTTPRequestHandler, response: Response) -> None:
-    if response.status_code is HTTPStatus.NO_CONTENT or (
-        response.status_code is HTTPStatus.METHOD_NOT_ALLOWED
-        and response.data is None
-    ):
-        handler.send_response_only(response.status_code)
-        handler.end_headers()
-    else:
-        if response.data is None:
-            raise ValueError
-
-        match response.format:
+    def send(self, handler: BaseHTTPRequestHandler) -> None:
+        match self.__format:
+            case ResponseFormat.EMPTY:
+                handler.send_response_only(self.__status_code)
+                handler.end_headers()
             case ResponseFormat.JSON:
-                handler.send_response(response.status_code)
-                handler.send_header("Content-Type", response.format.value)
-                handler.end_headers()
-                handler.wfile.write(json.dumps(response.data).encode())
+                self.__send_json(handler)
             case ResponseFormat.TEXT:
-                handler.send_response(response.status_code)
-                handler.send_header("Content-Type", response.format.value)
-                handler.end_headers()
-                handler.wfile.write(response.data.encode())
+                self.__send_text(handler)
 
-    if response.status_code >= 500:
-        log = logger.error
-    elif response.status_code >= 400:
-        log = logger.warning
-    else:
-        log = logger.info
+        self.__log(handler)
 
-    log(
-        f"Request {handler.command} {handler.path} "
-        f"completed with status {response.status_code}",
-        extra={
-            "method": handler.command,
-            "endpoint": handler.path,
-            "status_code": response.status_code,
-        },
-    )
+    def __send_json(self, handler: BaseHTTPRequestHandler) -> None:
+        try:
+            data = json.dumps(self.__data).encode()
+        except ValueError, TypeError:
+            raise TypeError("Invalid data for JSON response") from None
+
+        handler.send_response(self.__status_code)
+        handler.send_header("Content-Type", ResponseFormat.JSON.value)
+        handler.end_headers()
+        handler.wfile.write(data)
+
+    def __send_text(self, handler: BaseHTTPRequestHandler) -> None:
+        if not isinstance(self.__data, str):
+            raise TypeError("TEXT response requires str data")
+
+        handler.send_response(self.__status_code)
+        handler.send_header("Content-Type", ResponseFormat.TEXT.value)
+        handler.end_headers()
+        handler.wfile.write(self.__data.encode())
+
+    @classmethod
+    def json(cls, status_code: HTTPStatus, data: Any) -> Self:
+        return cls(status_code, data, ResponseFormat.JSON)
+
+    @classmethod
+    def text(cls, status_code: HTTPStatus, data: str) -> Self:
+        return cls(status_code, data, ResponseFormat.TEXT)
+
+    @classmethod
+    def empty(cls, status_code: HTTPStatus) -> Self:
+        return cls(status_code)
