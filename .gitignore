@@ -11,9 +11,13 @@ wheels/
 
 # Development tools cache
 .ruff_cache/
+.pytest_cache/
 
 # Logs
-logs/
+logs
 
-#data
-data/
+# Data
+data
+
+# Coverage
+.coverage
