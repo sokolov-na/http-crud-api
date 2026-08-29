@@ -8,7 +8,7 @@ from http_crud_api.schemas.user import UserCreateData, UserUpdateData
 
 def validate_email_address(user_email: str) -> str:
     try:
-        validated_email = validate_email(user_email)
+        validated_email = validate_email(user_email.strip())
         return validated_email.normalized
     except EmailNotValidError:
         raise ValidationError("Invalid email") from None
