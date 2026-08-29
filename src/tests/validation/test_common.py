@@ -5,7 +5,7 @@ from http_crud_api.validation.common import validate_json_object
 
 
 def test_validate_json_object_valid_json():
-    assert validate_json_object(b'{"name": "Nikita"}') == {"name": "Nikita"}
+    assert validate_json_object(b'{"name": "John"}') == {"name": "John"}
 
 
 def test_validate_json_object_invalid_json():
