@@ -87,7 +87,10 @@ class UserService:
                 email = self.__validate_email(
                     validated_data["email"], exclude_user_id=user_id
                 )
-            except UserAlreadyExistsError, ValidationError:
+            except (
+                UserAlreadyExistsError,
+                ValidationError,
+            ):
                 logger.exception("User updating failed")
                 raise
 

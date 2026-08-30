@@ -58,7 +58,10 @@ class Response:
     def __send_json(self, handler: BaseHTTPRequestHandler) -> None:
         try:
             data = json.dumps(self.__data).encode()
-        except ValueError, TypeError:
+        except (
+            ValueError,
+            TypeError,
+        ):
             raise TypeError("Invalid data for JSON response") from None
 
         handler.send_response(self.__status_code)
