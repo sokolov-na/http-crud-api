@@ -40,7 +40,7 @@ class TestHTTPRoutes:
 
     def test_health_returns_ok_response(
         self,
-        mock_response_factory: MagicMock,
+        mock_response_factory: Mock,
         monkeypatch: pytest.MonkeyPatch,
     ):
         monkeypatch.setattr(Response, "json", mock_response_factory)
@@ -55,7 +55,7 @@ class TestHTTPRoutes:
 
     def test_get_users_returns_users_response(
         self,
-        mock_response_factory: MagicMock,
+        mock_response_factory: Mock,
         mock_service: MagicMock,
         sample_user: User,
         monkeypatch: pytest.MonkeyPatch,
@@ -73,7 +73,7 @@ class TestHTTPRoutes:
 
     def test_get_user_returns_user_response(
         self,
-        mock_response_factory: MagicMock,
+        mock_response_factory: Mock,
         mock_service: MagicMock,
         sample_user: User,
         monkeypatch: pytest.MonkeyPatch,
@@ -92,7 +92,7 @@ class TestHTTPRoutes:
 
     def test_get_favicon_returns_no_content_response(
         self,
-        mock_response_factory: MagicMock,
+        mock_response_factory: Mock,
         monkeypatch: pytest.MonkeyPatch,
     ):
         monkeypatch.setattr(Response, "empty", mock_response_factory)
@@ -106,7 +106,7 @@ class TestHTTPRoutes:
 
     def test_not_allowed_returns_method_not_allowed_response(
         self,
-        mock_response_factory: MagicMock,
+        mock_response_factory: Mock,
         monkeypatch: pytest.MonkeyPatch,
     ):
         monkeypatch.setattr(Response, "empty", mock_response_factory)
@@ -120,7 +120,7 @@ class TestHTTPRoutes:
 
     def test_not_found_returns_not_found_response(
         self,
-        mock_response_factory: MagicMock,
+        mock_response_factory: Mock,
         monkeypatch: pytest.MonkeyPatch,
     ):
         monkeypatch.setattr(Response, "text", mock_response_factory)
@@ -135,7 +135,7 @@ class TestHTTPRoutes:
 
     def test_create_user_returns_created_response(
         self,
-        mock_response_factory: MagicMock,
+        mock_response_factory: Mock,
         mock_service: MagicMock,
         sample_user: User,
         monkeypatch: pytest.MonkeyPatch,
@@ -154,7 +154,7 @@ class TestHTTPRoutes:
 
     def test_delete_user_returns_deleted_response(
         self,
-        mock_response_factory: MagicMock,
+        mock_response_factory: Mock,
         mock_service: MagicMock,
         sample_user: User,
         monkeypatch: pytest.MonkeyPatch,
@@ -173,7 +173,7 @@ class TestHTTPRoutes:
 
     def test_update_user_returns_updated_response(
         self,
-        mock_response_factory: MagicMock,
+        mock_response_factory: Mock,
         mock_service: MagicMock,
         sample_user: User,
         monkeypatch: pytest.MonkeyPatch,
