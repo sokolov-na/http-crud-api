@@ -39,5 +39,5 @@ def test_get_body_returns_request_body(body: bytes):
     ],
 )
 def test_is_user_id_path_returns_expected_result(path: str, ans: bool):
-    formated_path = path.format(uuid7())
-    assert is_user_id_path(formated_path) == ans
+    formatted_path = path.format(uuid7())
+    assert is_user_id_path(formatted_path) == ans
