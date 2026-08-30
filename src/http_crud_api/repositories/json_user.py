@@ -33,6 +33,7 @@ class JsonUserRepository:
             json.dump(
                 [user.to_dict() for user in self.__users],
                 file,
+                indent=4,
             )
 
     def get_all(self) -> list[User]:
