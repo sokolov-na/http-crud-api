@@ -1,6 +1,9 @@
 import logging
 from http.server import BaseHTTPRequestHandler
 
+from http_crud_api.exceptions.validation import ValidationError
+from http_crud_api.validation.request import validate_id_from_path
+
 logger = logging.getLogger("http_crud_api.http")
 
 
@@ -10,4 +13,10 @@ def get_body(handler: BaseHTTPRequestHandler) -> bytes:
 
 
 def is_user_id_path(path: str) -> bool:
-    return path.startswith("/users/") and len(path.strip("/").split("/")) == 2
+    try:
+        validate_id_from_path(path)
+        return (
+            path.startswith("/users/") and len(path.strip("/").split("/")) == 2
+        )
+    except ValidationError:
+        return False
