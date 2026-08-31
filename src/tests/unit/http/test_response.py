@@ -43,13 +43,14 @@ class TestResponse:
         handler.wfile.write.assert_called_once_with(b"TEXT")
 
     def test_empty_response_sends_no_content(self, handler: Mock):
-        response = Response.empty(HTTPStatus.INTERNAL_SERVER_ERROR)
+        response = Response.empty(HTTPStatus.NO_CONTENT)
         response.send(handler)
 
         handler.send_response_only.assert_called_once_with(
-            HTTPStatus.INTERNAL_SERVER_ERROR
+            HTTPStatus.NO_CONTENT
         )
         handler.end_headers.assert_called_once_with()
+        handler.wfile.write.assert_not_called()
 
     def test_json_response_raises_for_invalid_data(self, handler: Mock):
         response = Response.json(HTTPStatus.OK, b"bytes")

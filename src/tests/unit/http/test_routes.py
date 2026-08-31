@@ -71,6 +71,8 @@ class TestHTTPRoutes:
             [sample_user.to_dict()],
         )
 
+        mock_service.get_all.assert_called_once_with()
+
     def test_get_user_returns_user_response(
         self,
         mock_response_factory: Mock,
@@ -89,6 +91,8 @@ class TestHTTPRoutes:
             HTTPStatus.OK,
             sample_user.to_dict(),
         )
+
+        mock_service.get_by_id.assert_called_once_with(sample_user.id)
 
     def test_get_favicon_returns_no_content_response(
         self,
@@ -152,6 +156,8 @@ class TestHTTPRoutes:
             {"id": str(sample_user.id), "status": "created"},
         )
 
+        mock_service.create.assert_called_once_with({})
+
     def test_delete_user_returns_deleted_response(
         self,
         mock_response_factory: Mock,
@@ -171,6 +177,8 @@ class TestHTTPRoutes:
             {"id": str(sample_user.id), "status": "deleted"},
         )
 
+        mock_service.delete.assert_called_once_with(sample_user.id)
+
     def test_update_user_returns_updated_response(
         self,
         mock_response_factory: Mock,
@@ -189,4 +197,9 @@ class TestHTTPRoutes:
         mock_response_factory.assert_called_once_with(
             HTTPStatus.OK,
             {"id": str(sample_user.id), "status": "updated"},
+        )
+
+        mock_service.update.assert_called_once_with(
+            {},
+            user_id=sample_user.id,
         )
