@@ -1,3 +1,5 @@
+"""Application logging configuration."""
+
 import logging
 from pathlib import Path
 
@@ -6,6 +8,8 @@ from http_crud_api.logging.formatters import ConsoleFormatter, FileFormatter
 
 
 def setup_logging() -> None:
+    """Configure console and file logging for the application."""
+
     # DEV collects all logs; PROD (or something else) starts from WARNING.
     level = logging.DEBUG if ENVIRONMENT.upper() == "DEV" else logging.WARNING
 

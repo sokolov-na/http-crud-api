@@ -1,3 +1,5 @@
+"""Validation helpers for user data."""
+
 from typing import Any
 
 from email_validator import EmailNotValidError, validate_email
@@ -7,6 +9,8 @@ from http_crud_api.schemas.user import UserCreateData, UserUpdateData
 
 
 def validate_email_address(user_email: str) -> str:
+    """Validate and normalize an email address."""
+
     try:
         validated_email = validate_email(user_email.strip())
         return validated_email.normalized
@@ -15,6 +19,8 @@ def validate_email_address(user_email: str) -> str:
 
 
 def validate_user_create_data(data: dict[Any, Any]) -> UserCreateData:
+    """Validate data required to create a user."""
+
     if "name" not in data or "email" not in data:
         raise ValidationError("Missing name or email") from None
 
@@ -28,6 +34,8 @@ def validate_user_create_data(data: dict[Any, Any]) -> UserCreateData:
 
 
 def validate_user_update_data(data: dict[Any, Any]) -> UserUpdateData:
+    """Validate data supplied to update a user."""
+
     has_name: bool = "name" in data
     has_email: bool = "email" in data
 

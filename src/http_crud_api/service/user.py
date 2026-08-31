@@ -1,3 +1,5 @@
+"""Business logic for user operations."""
+
 import logging
 from typing import Any
 from uuid import UUID
@@ -20,6 +22,8 @@ logger = logging.getLogger(__name__)
 
 
 class UserService:
+    """Validate and coordinate user operations through a repository."""
+
     def __init__(self, repository: UserRepository) -> None:
         self.__repository = repository
 
@@ -36,9 +40,13 @@ class UserService:
         return email
 
     def get_all(self) -> list[User]:
+        """Return all users."""
+
         return self.__repository.get_all()
 
     def get_by_id(self, user_id: UUID) -> User:
+        """Return a user by ID or raise if it does not exist."""
+
         user: User | None = self.__repository.get_by_id(user_id)
 
         if user is None:
@@ -49,6 +57,8 @@ class UserService:
         return user
 
     def create(self, data: dict[Any, Any]) -> User:
+        """Validate input and create a new user."""
+
         try:
             validated_data: UserCreateData = validate_user_create_data(data)
         except ValidationError:
@@ -71,6 +81,8 @@ class UserService:
         return user
 
     def update(self, data: dict[Any, Any], *, user_id: UUID) -> User:
+        """Validate input and update an existing user."""
+
         user: User = self.get_by_id(user_id)
 
         try:
@@ -100,6 +112,8 @@ class UserService:
         return user
 
     def delete(self, user_id: UUID) -> User:
+        """Delete and return a user by ID."""
+
         user: User = self.get_by_id(user_id)
 
         self.__repository.delete(user)

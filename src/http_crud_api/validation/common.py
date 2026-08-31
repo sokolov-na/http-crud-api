@@ -1,3 +1,5 @@
+"""Common request validation helpers."""
+
 import json
 from typing import Any, cast
 
@@ -5,6 +7,8 @@ from http_crud_api.exceptions.validation import ValidationError
 
 
 def validate_json_object(data: bytes) -> dict[str, Any]:
+    """Parse bytes as a JSON object or raise a validation error."""
+
     try:
         data = json.loads(data)
     except json.JSONDecodeError:

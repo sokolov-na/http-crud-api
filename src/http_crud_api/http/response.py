@@ -1,3 +1,5 @@
+"""HTTP response objects and serialization helpers."""
+
 import json
 import logging
 from enum import Enum
@@ -9,12 +11,16 @@ logger = logging.getLogger("http_crud_api.http")
 
 
 class ResponseFormat(Enum):
+    """Supported response body formats."""
+
     JSON = "application/json"
     TEXT = "text/plain"
     EMPTY = None
 
 
 class Response:
+    """Represent an HTTP response and send it to a request handler."""
+
     def __init__(
         self,
         status_code: HTTPStatus,
@@ -44,6 +50,8 @@ class Response:
         )
 
     def send(self, handler: BaseHTTPRequestHandler) -> None:
+        """Write the response to the handler and log the completed request."""
+
         match self.__format:
             case ResponseFormat.EMPTY:
                 handler.send_response_only(self.__status_code)
@@ -80,12 +88,18 @@ class Response:
 
     @classmethod
     def json(cls, status_code: HTTPStatus, data: Any) -> Self:
+        """Create a JSON response."""
+
         return cls(status_code, data, ResponseFormat.JSON)
 
     @classmethod
     def text(cls, status_code: HTTPStatus, data: str) -> Self:
+        """Create a plain-text response."""
+
         return cls(status_code, data, ResponseFormat.TEXT)
 
     @classmethod
     def empty(cls, status_code: HTTPStatus) -> Self:
+        """Create a response without a body."""
+
         return cls(status_code)

@@ -1,9 +1,13 @@
+"""Request path validation helpers."""
+
 from uuid import UUID
 
 from http_crud_api.exceptions.validation import ValidationError
 
 
 def validate_id_from_path(path: str) -> UUID:
+    """Extract and validate a UUID from a request path."""
+
     user_id_str = path.strip("/").split("/")[-1]
 
     try:

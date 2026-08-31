@@ -1,3 +1,5 @@
+"""HTTP exception handling."""
+
 from http import HTTPStatus
 
 from http_crud_api.exceptions.service import (
@@ -9,6 +11,8 @@ from http_crud_api.http.response import Response
 
 
 def handle_exception(exc: Exception) -> Response:
+    """Convert an application exception into an HTTP response."""
+
     if isinstance(exc, ValidationError):
         return Response.text(HTTPStatus.BAD_REQUEST, str(exc))
 

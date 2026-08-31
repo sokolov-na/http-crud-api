@@ -1,3 +1,5 @@
+"""JSON-backed user repository."""
+
 import json
 from pathlib import Path
 from uuid import UUID
@@ -6,6 +8,8 @@ from http_crud_api.models.user import User
 
 
 class JsonUserRepository:
+    """Store users in a JSON file."""
+
     def __init__(self, path: Path) -> None:
         self.__path = path
         self.__prepare_storage()
@@ -37,22 +41,32 @@ class JsonUserRepository:
             )
 
     def get_all(self) -> list[User]:
+        """Return all stored users."""
+
         return self.__users.copy()
 
     def get_by_id(self, user_id: UUID) -> User | None:
+        """Return the user with the given ID, if present."""
+
         return next(
             (user for user in self.__users if user.id == user_id), None
         )
 
     def get_by_email(self, user_email: str) -> User | None:
+        """Return the user with the given email, if present."""
+
         return next(
             (user for user in self.__users if user.email == user_email), None
         )
 
     def add(self, user: User) -> None:
+        """Add a user and persist the repository."""
+
         self.__users.append(user)
         self.__save()
 
     def delete(self, user: User) -> None:
+        """Delete a user and persist the repository."""
+
         self.__users.remove(user)
         self.__save()

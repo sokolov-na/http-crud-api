@@ -1,3 +1,5 @@
+"""HTTP server and request handler for the user API."""
+
 import logging
 import socketserver
 from functools import partial
@@ -28,6 +30,8 @@ logger = logging.getLogger(__name__)
 
 
 class RequestHandler(BaseHTTPRequestHandler):
+    """Dispatch HTTP requests to the application route handlers."""
+
     def __init__(
         self, *args: Any, user_service: UserService, **kwargs: Any
     ) -> None:
@@ -38,6 +42,8 @@ class RequestHandler(BaseHTTPRequestHandler):
         pass
 
     def do_GET(self) -> None:
+        """Handle GET requests."""
+
         try:
             match self.path:
                 case "/health":
@@ -60,6 +66,8 @@ class RequestHandler(BaseHTTPRequestHandler):
         response.send(self)
 
     def do_POST(self) -> None:
+        """Handle POST requests."""
+
         try:
             match self.path:
                 case "/health":
@@ -77,6 +85,8 @@ class RequestHandler(BaseHTTPRequestHandler):
         response.send(self)
 
     def do_DELETE(self) -> None:
+        """Handle DELETE requests."""
+
         try:
             match self.path:
                 case "/health":
@@ -91,6 +101,8 @@ class RequestHandler(BaseHTTPRequestHandler):
         response.send(self)
 
     def do_PUT(self) -> None:
+        """Handle PUT requests."""
+
         try:
             match self.path:
                 case "/health":
@@ -107,6 +119,8 @@ class RequestHandler(BaseHTTPRequestHandler):
 
 
 def run_server() -> None:
+    """Create the application and run the HTTP server."""
+
     try:
         repository = JsonUserRepository(Path("data/users.json"))
     except JSONDecodeError:

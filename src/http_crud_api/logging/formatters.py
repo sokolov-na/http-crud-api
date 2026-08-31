@@ -1,3 +1,5 @@
+"""Logging formatters for console and JSONL output."""
+
 import json
 import logging
 from typing import Final
@@ -10,12 +12,20 @@ OPTIONAL_FIELDS: Final = {
 
 
 class ConsoleFormatter(logging.Formatter):
+    """Format log records as concise console messages."""
+
     def format(self, record: logging.LogRecord) -> str:
+        """Return a human-readable representation of a log record."""
+
         return f"{record.levelname} | {record.name} | {record.getMessage()}"
 
 
 class FileFormatter(logging.Formatter):
+    """Format log records as JSON objects."""
+
     def format(self, record: logging.LogRecord) -> str:
+        """Return a JSON representation of a log record."""
+
         data = {
             "timestamp": self.formatTime(record),
             "level": record.levelname,
