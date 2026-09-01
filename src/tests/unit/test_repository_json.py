@@ -81,15 +81,14 @@ class TestJsonRepository:
 
     def test_add_persists_user(
         self,
-        tmp_path: Path,
+        path: Path,
         sample_user: User,
     ):
-        file_path = tmp_path / "users.json"
-        user_repo = JsonUserRepository(file_path)
+        user_repo = JsonUserRepository(path)
 
         user_repo.add(sample_user)
 
-        with open(file_path) as file:
+        with open(path) as file:
             file_content = json.load(file)
             assert file_content == [sample_user.to_dict()]
 
@@ -109,7 +108,7 @@ class TestJsonRepository:
 
         assert user_repo.get_all() == []
 
-    def test_delete_nonexistent_user(
+    def test_delete_raises_for_nonexistent_user(
         self,
         path: Path,
         user_repo: JsonUserRepository,

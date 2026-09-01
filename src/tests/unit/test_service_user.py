@@ -18,7 +18,7 @@ class TestUserService:
         return create_autospec(UserRepository, instance=True)
 
     @pytest.fixture
-    def user_service(self, mock_repository: UserRepository) -> UserService:
+    def user_service(self, mock_repository: MagicMock) -> UserService:
         return UserService(mock_repository)
 
     @pytest.fixture
@@ -66,7 +66,7 @@ class TestUserService:
 
         mock_repository.get_by_id.assert_called_once_with(sample_user.id)
 
-    def test_user_create_email_available(
+    def test_create_adds_user_when_email_is_available(
         self,
         user_service: UserService,
         mock_repository: MagicMock,
@@ -90,13 +90,13 @@ class TestUserService:
         mock_repository.add.assert_called_once()
         mock_repository.get_by_email.assert_called_once_with(sample_user.email)
 
-    def test_user_create_email_unavailable(
+    def test_create_rejects_existing_email(
         self,
         user_service: UserService,
         mock_repository: MagicMock,
         sample_user: User,
     ):
-        data = sample_user.to_dict()
+        data = {"name": sample_user.name, "email": sample_user.email}
         mock_repository.add.return_value = None
         mock_repository.get_by_email.return_value = sample_user
 
@@ -180,7 +180,7 @@ class TestUserService:
         mock_repository.get_by_email.assert_called_once_with("new@gmail.com")
         mock_repository.get_by_id.assert_called_once_with(sample_user.id)
 
-    def test_user_update_email_unavailable(
+    def test_update_rejects_existing_email(
         self,
         user_service: UserService,
         mock_repository: MagicMock,
@@ -217,7 +217,7 @@ class TestUserService:
 
         mock_repository.get_by_id.assert_called_once_with(sample_user.id)
 
-    def test_user_delete(
+    def test_delete_returns_deleted_user(
         self,
         user_service: UserService,
         mock_repository: MagicMock,

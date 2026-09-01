@@ -83,7 +83,7 @@ class UserService:
     def update(self, data: dict[Any, Any], *, user_id: UUID) -> User:
         """Validate input and update an existing user."""
 
-        user: User = self.get_by_id(user_id)
+        user = self.get_by_id(user_id)
 
         try:
             validated_data: UserUpdateData = validate_user_update_data(data)
@@ -96,7 +96,7 @@ class UserService:
 
         if "email" in validated_data:
             try:
-                email = self.__validate_email(
+                user.email = self.__validate_email(
                     validated_data["email"], exclude_user_id=user_id
                 )
             except (
@@ -106,7 +106,7 @@ class UserService:
                 logger.exception("User updating failed")
                 raise
 
-            user.email = email
+        self.__repository.update(user)
 
         logger.info("User %s updated", user.id)
         return user

@@ -1,6 +1,7 @@
 """JSON-backed user repository."""
 
 import json
+from copy import deepcopy
 from pathlib import Path
 from uuid import UUID
 
@@ -43,20 +44,20 @@ class JsonUserRepository:
     def get_all(self) -> list[User]:
         """Return all stored users."""
 
-        return self.__users.copy()
+        return deepcopy(self.__users)
 
     def get_by_id(self, user_id: UUID) -> User | None:
         """Return the user with the given ID, if present."""
 
         return next(
-            (user for user in self.__users if user.id == user_id), None
+            (user for user in self.get_all() if user.id == user_id), None
         )
 
     def get_by_email(self, user_email: str) -> User | None:
         """Return the user with the given email, if present."""
 
         return next(
-            (user for user in self.__users if user.email == user_email), None
+            (user for user in self.get_all() if user.email == user_email), None
         )
 
     def add(self, user: User) -> None:
@@ -69,4 +70,18 @@ class JsonUserRepository:
         """Delete a user and persist the repository."""
 
         self.__users.remove(user)
+        self.__save()
+
+    def update(self, user: User) -> None:
+        """Persist the updated state of an existing user."""
+
+        stored_user = next(
+            (
+                target_user
+                for target_user in self.__users
+                if target_user.id == user.id
+            ),
+        )
+        stored_user.email = user.email
+        stored_user.name = user.name
         self.__save()
