@@ -16,7 +16,7 @@ def setup_logging(settings: Settings) -> None:
     path.mkdir(parents=True, exist_ok=True)
 
     console_handler = logging.StreamHandler()
-    file_handler = logging.FileHandler(path / "logs.jsonl", encoding="utf-8")
+    file_handler = logging.FileHandler(path / "app.jsonl", encoding="utf-8")
 
     console_handler.setFormatter(ConsoleFormatter())
     file_handler.setFormatter(FileFormatter())

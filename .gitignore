@@ -13,6 +13,9 @@ wheels/
 .ruff_cache/
 .pytest_cache/
 
+# Local environment files
+.env
+
 # Logs
 logs
 
