@@ -5,8 +5,7 @@ import socketserver
 from functools import partial
 from http.server import BaseHTTPRequestHandler
 from json import JSONDecodeError
-from pathlib import Path
-from typing import Any, Final
+from typing import Any
 
 from http_crud_api.http.exceptions import handle_exception
 from http_crud_api.http.routes import (
@@ -23,8 +22,7 @@ from http_crud_api.http.routes import (
 from http_crud_api.http.utils import get_body, is_user_id_path
 from http_crud_api.repositories.json_user import JsonUserRepository
 from http_crud_api.service.user import UserService
-
-PORT: Final = 8080
+from http_crud_api.settings import Settings
 
 logger = logging.getLogger(__name__)
 
@@ -118,11 +116,11 @@ class RequestHandler(BaseHTTPRequestHandler):
         response.send(self)
 
 
-def run_server() -> None:
+def run_server(settings: Settings) -> None:
     """Create the application and run the HTTP server."""
 
     try:
-        repository = JsonUserRepository(Path("data/users.json"))
+        repository = JsonUserRepository(settings.data_dir / "users.json")
     except JSONDecodeError:
         logger.critical("Failed to load user data", exc_info=True)
         return
@@ -130,7 +128,9 @@ def run_server() -> None:
     handler = partial(RequestHandler, user_service=UserService(repository))
 
     logger.info("Server started")
-    with socketserver.TCPServer(("", PORT), handler) as httpd:
+    with socketserver.TCPServer(
+        (settings.http_host, settings.http_port), handler
+    ) as httpd:
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:

@@ -1,24 +1,22 @@
 """Application logging configuration."""
 
 import logging
-from pathlib import Path
 
-from http_crud_api.logging.config import ENVIRONMENT, LOG_DIR, LOG_FILE
 from http_crud_api.logging.formatters import ConsoleFormatter, FileFormatter
+from http_crud_api.settings import Settings
 
 
-def setup_logging() -> None:
+def setup_logging(settings: Settings) -> None:
     """Configure console and file logging for the application."""
 
-    # DEV collects all logs; PROD (or something else) starts from WARNING.
-    level = logging.DEBUG if ENVIRONMENT.upper() == "DEV" else logging.WARNING
+    level = settings.log_level
 
-    path = Path(LOG_DIR)
+    path = settings.log_dir
 
     path.mkdir(parents=True, exist_ok=True)
 
     console_handler = logging.StreamHandler()
-    file_handler = logging.FileHandler(path / LOG_FILE, encoding="utf-8")
+    file_handler = logging.FileHandler(path / "logs.jsonl", encoding="utf-8")
 
     console_handler.setFormatter(ConsoleFormatter())
     file_handler.setFormatter(FileFormatter())
