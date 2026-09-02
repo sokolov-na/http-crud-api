@@ -1,6 +1,5 @@
 from http import HTTPStatus
 from unittest.mock import MagicMock, Mock, create_autospec
-from uuid import uuid7
 
 import pytest
 
@@ -28,7 +27,6 @@ class TestHTTPRoutes:
     @pytest.fixture
     def sample_user(self) -> User:
         return User(
-            id=uuid7(),
             name="John",
             email="example@google.com",
         )

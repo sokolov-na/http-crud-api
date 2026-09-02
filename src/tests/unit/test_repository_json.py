@@ -12,7 +12,6 @@ class TestJsonRepository:
     @pytest.fixture
     def sample_user(self) -> User:
         return User(
-            id=uuid7(),
             name="John",
             email="example@google.com",
         )

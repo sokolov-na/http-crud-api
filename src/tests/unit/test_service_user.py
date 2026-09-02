@@ -1,5 +1,4 @@
 from unittest.mock import MagicMock, create_autospec
-from uuid import uuid7
 
 import pytest
 
@@ -24,7 +23,6 @@ class TestUserService:
     @pytest.fixture
     def sample_user(self) -> User:
         return User(
-            id=uuid7(),
             name="John",
             email="example@google.com",
         )
