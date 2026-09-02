@@ -8,7 +8,7 @@ from http_crud_api.models.user import User
 from http_crud_api.repositories.json_user import JsonUserRepository
 
 
-class TestJsonRepository:
+class TestJsonUserRepository:
     @pytest.fixture
     def sample_user(self) -> User:
         return User(
@@ -23,7 +23,9 @@ class TestJsonRepository:
         sample_user: User,
     ) -> JsonUserRepository:
         file_path = tmp_path / "users.json"
-        file_path.write_text(json.dumps([sample_user.to_dict()]))
+        file_path.write_text(
+            json.dumps([sample_user.to_dict()]), encoding="utf-8"
+        )
         return JsonUserRepository(file_path)
 
     @pytest.fixture
@@ -87,7 +89,7 @@ class TestJsonRepository:
 
         user_repo.add(sample_user)
 
-        with open(path) as file:
+        with open(path, encoding="utf-8") as file:
             file_content = json.load(file)
             assert file_content == [sample_user.to_dict()]
 
@@ -101,7 +103,7 @@ class TestJsonRepository:
     ):
         user_repo.delete(sample_user)
 
-        with open(path) as file:
+        with open(path, encoding="utf-8") as file:
             file_content = json.load(file)
             assert file_content == []
 
@@ -118,7 +120,7 @@ class TestJsonRepository:
         with pytest.raises(ValueError):
             user_repo.delete(user)
 
-        with open(path) as file:
+        with open(path, encoding="utf-8") as file:
             file_content = json.load(file)
             assert file_content == [sample_user.to_dict()]
 
@@ -134,3 +136,10 @@ class TestJsonRepository:
         result.clear()
 
         assert user_repo.get_all() == [sample_user]
+
+        result = user_repo.get_all()
+        result[0].name = "Changed"
+
+        retrieved_user = user_repo.get_by_id(sample_user.id)
+        assert retrieved_user is not None
+        assert retrieved_user.name == sample_user.name

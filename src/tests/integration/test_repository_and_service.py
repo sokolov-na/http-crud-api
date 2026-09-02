@@ -13,7 +13,7 @@ from http_crud_api.repositories.json_user import JsonUserRepository
 from http_crud_api.service.user import UserService
 
 
-class TestJSONRepositoryAndService:
+class TestUserServiceWithJsonRepository:
     @pytest.fixture
     def sample_user(self) -> User:
         return User(
@@ -29,7 +29,9 @@ class TestJSONRepositoryAndService:
         sample_user: User,
     ) -> JsonUserRepository:
         file_path = tmp_path / "users.json"
-        file_path.write_text(json.dumps([sample_user.to_dict()]))
+        file_path.write_text(
+            json.dumps([sample_user.to_dict()]), encoding="utf-8"
+        )
         return JsonUserRepository(file_path)
 
     @pytest.fixture
@@ -84,7 +86,7 @@ class TestJSONRepositoryAndService:
         assert result.email == data["email"]
         assert result.id is not None
 
-        with open(path) as file:
+        with open(path, encoding="utf-8") as file:
             file_content = json.load(file)
             assert file_content == [sample_user.to_dict(), result.to_dict()]
 
@@ -99,7 +101,7 @@ class TestJSONRepositoryAndService:
         with pytest.raises(UserAlreadyExistsError):
             user_service.create(data)
 
-        with open(path) as file:
+        with open(path, encoding="utf-8") as file:
             file_content = json.load(file)
             assert file_content == [sample_user.to_dict()]
 
@@ -115,7 +117,7 @@ class TestJSONRepositoryAndService:
 
         assert result.name == "Jane"
 
-        with open(path) as file:
+        with open(path, encoding="utf-8") as file:
             file_content = json.load(file)
             assert file_content == [result.to_dict()]
 
@@ -132,7 +134,7 @@ class TestJSONRepositoryAndService:
 
         assert result.email == old_email
 
-        with open(path) as file:
+        with open(path, encoding="utf-8") as file:
             file_content = json.load(file)
             assert file_content == [sample_user.to_dict()]
             assert file_content == [result.to_dict()]
@@ -149,7 +151,7 @@ class TestJSONRepositoryAndService:
 
         assert result.email == "new@gmail.com"
 
-        with open(path) as file:
+        with open(path, encoding="utf-8") as file:
             file_content = json.load(file)
             assert file_content == [result.to_dict()]
 
@@ -166,7 +168,7 @@ class TestJSONRepositoryAndService:
         assert result.email == "new@gmail.com"
         assert result.name == "Jane"
 
-        with open(path) as file:
+        with open(path, encoding="utf-8") as file:
             file_content = json.load(file)
             assert file_content == [result.to_dict()]
 
@@ -183,7 +185,7 @@ class TestJSONRepositoryAndService:
         with pytest.raises(UserAlreadyExistsError):
             user_service.update(data, user_id=sample_user.id)
 
-        with open(path) as file:
+        with open(path, encoding="utf-8") as file:
             file_content = json.load(file)
             assert file_content[0]["email"] == old_email
 
@@ -199,7 +201,7 @@ class TestJSONRepositoryAndService:
                 user_id=uuid7(),
             )
 
-        with open(path) as file:
+        with open(path, encoding="utf-8") as file:
             file_content = json.load(file)
             assert file_content == [sample_user.to_dict()]
 
@@ -212,7 +214,7 @@ class TestJSONRepositoryAndService:
         result = user_service.delete(sample_user.id)
         assert result == sample_user
 
-        with open(path) as file:
+        with open(path, encoding="utf-8") as file:
             file_content = json.load(file)
             assert file_content == []
 
@@ -225,6 +227,6 @@ class TestJSONRepositoryAndService:
         with pytest.raises(UserNotFoundError):
             user_service.delete(uuid7())
 
-        with open(path) as file:
+        with open(path, encoding="utf-8") as file:
             file_content = json.load(file)
             assert file_content == [sample_user.to_dict()]

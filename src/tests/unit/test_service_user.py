@@ -119,6 +119,7 @@ class TestUserService:
         assert sample_user.name == result.name
 
         mock_repository.get_by_id.assert_called_once_with(sample_user.id)
+        mock_repository.update.assert_called_once_with(sample_user)
 
     def test_update_keeps_same_email(
         self,
@@ -138,6 +139,7 @@ class TestUserService:
 
         mock_repository.get_by_email.assert_called_once_with(sample_user.email)
         mock_repository.get_by_id.assert_called_once_with(sample_user.id)
+        mock_repository.update.assert_called_once_with(sample_user)
 
     def test_update_changes_only_email(
         self,
@@ -156,6 +158,7 @@ class TestUserService:
 
         mock_repository.get_by_email.assert_called_once_with("new@gmail.com")
         mock_repository.get_by_id.assert_called_once_with(sample_user.id)
+        mock_repository.update.assert_called_once_with(sample_user)
 
     def test_update_changes_name_and_email(
         self,
@@ -177,6 +180,7 @@ class TestUserService:
 
         mock_repository.get_by_email.assert_called_once_with("new@gmail.com")
         mock_repository.get_by_id.assert_called_once_with(sample_user.id)
+        mock_repository.update.assert_called_once_with(sample_user)
 
     def test_update_rejects_existing_email(
         self,
@@ -198,6 +202,7 @@ class TestUserService:
 
         mock_repository.get_by_email.assert_called_once_with("new@gmail.com")
         mock_repository.get_by_id.assert_called_once_with(sample_user.id)
+        mock_repository.update.assert_not_called()
 
     def test_update_raises_when_user_not_found(
         self,
