@@ -22,7 +22,7 @@ class JsonUserRepository:
             self.__path.write_text("[]", encoding="utf-8")
 
     def __load(self) -> list[User]:
-        with open(self.__path) as file:
+        with open(self.__path, encoding="utf-8") as file:
             data = json.load(file)
             return [
                 User(
@@ -34,7 +34,7 @@ class JsonUserRepository:
             ]
 
     def __save(self) -> None:
-        with open(self.__path, "w") as file:
+        with open(self.__path, "w", encoding="utf-8") as file:
             json.dump(
                 [user.to_dict() for user in self.__users],
                 file,
