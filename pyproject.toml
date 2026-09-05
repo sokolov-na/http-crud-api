@@ -1,6 +1,6 @@
 [project]
 name = "http-crud-api"
-version = "1.0.0"
+version = "1.0.1"
 description = "A small JSON-based HTTP CRUD API for users"
 readme = "README.md"
 authors = [
