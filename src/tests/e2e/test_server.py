@@ -5,7 +5,7 @@ from collections.abc import Generator
 from dataclasses import dataclass
 from http import HTTPStatus
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid7
 
 import pytest
 import requests
@@ -106,6 +106,72 @@ class TestServer:
         assert resp.headers["Content-Type"] == ResponseFormat.JSON.value
         assert resp.json() == {"status": "ok"}
 
+    @pytest.mark.parametrize(
+        "method",
+        [
+            "POST",
+            "PUT",
+            "DELETE",
+        ],
+    )
+    def test_health_rejects_unsupported_methods(
+        self,
+        server: Server,
+        method: str,
+    ):
+        resp = server.request(
+            method,
+            "/health",
+        )
+
+        assert resp.status_code == HTTPStatus.METHOD_NOT_ALLOWED
+
+    @pytest.mark.parametrize(
+        "method",
+        [
+            "POST",
+            "PUT",
+            "DELETE",
+        ],
+    )
+    @pytest.mark.parametrize(
+        "path",
+        [
+            "/",
+            "/users/something",
+            "/health/something",
+            "/comments",
+        ],
+    )
+    def test_unknown_paths_return_not_found(
+        self,
+        server: Server,
+        method: str,
+        path: str,
+    ):
+        resp = server.request(method, path)
+
+        assert resp.status_code == HTTPStatus.NOT_FOUND
+
+    @pytest.mark.parametrize(
+        "method",
+        [
+            "PUT",
+            "DELETE",
+        ],
+    )
+    def test_users_collection_rejects_unsupported_methods(
+        self,
+        server: Server,
+        method: str,
+    ):
+        resp = server.request(
+            method,
+            "/users",
+        )
+
+        assert resp.status_code == HTTPStatus.METHOD_NOT_ALLOWED
+
     def test_user_crud_happy_flow(self, server: Server):
         resp = server.request("GET", "/users")
 
@@ -136,19 +202,19 @@ class TestServer:
         assert resp.headers["Content-Type"] == ResponseFormat.JSON.value
         assert resp.json() == [user.to_dict()]
 
-        resp = requests.get(
-            f"{server.base_url}/users/{user.id}",
-            timeout=request_timeout,
+        resp = server.request(
+            "GET",
+            f"/users/{user.id}",
         )
 
         assert resp.status_code == HTTPStatus.OK
         assert resp.headers["Content-Type"] == ResponseFormat.JSON.value
         assert resp.json() == user.to_dict()
 
-        resp = requests.put(
-            f"{server.base_url}/users/{user.id}",
+        resp = server.request(
+            "PUT",
+            f"/users/{user.id}",
             json={"name": "Jane"},
-            timeout=request_timeout,
         )
 
         assert resp.status_code == HTTPStatus.OK
@@ -157,19 +223,61 @@ class TestServer:
         assert resp.json()["status"] == "updated"
         user.name = "Jane"
 
-        resp = requests.get(
-            f"{server.base_url}/users/{user.id}",
-            timeout=request_timeout,
+        resp = server.request(
+            "GET",
+            f"/users/{user.id}",
         )
 
         assert resp.status_code == HTTPStatus.OK
         assert resp.headers["Content-Type"] == ResponseFormat.JSON.value
         assert resp.json() == user.to_dict()
 
-        resp = requests.put(
-            f"{server.base_url}/users/{user.id}",
+        resp = server.request(
+            "PUT",
+            f"/users/{user.id}",
+            json={"name": "john"},
+        )
+
+        assert resp.status_code == HTTPStatus.OK
+        assert resp.headers["Content-Type"] == ResponseFormat.JSON.value
+        assert resp.json()["id"] == str(user.id)
+        assert resp.json()["status"] == "updated"
+        user.name = "John"
+
+        resp = server.request(
+            "GET",
+            f"/users/{user.id}",
+        )
+
+        assert resp.status_code == HTTPStatus.OK
+        assert resp.headers["Content-Type"] == ResponseFormat.JSON.value
+        assert resp.json() == user.to_dict()
+
+        resp = server.request(
+            "PUT",
+            f"/users/{user.id}",
+            json={"name": "jANE"},
+        )
+
+        assert resp.status_code == HTTPStatus.OK
+        assert resp.headers["Content-Type"] == ResponseFormat.JSON.value
+        assert resp.json()["id"] == str(user.id)
+        assert resp.json()["status"] == "updated"
+        user.name = "Jane"
+
+        resp = server.request(
+            "GET",
+            f"/users/{user.id}",
+        )
+
+        assert resp.status_code == HTTPStatus.OK
+        assert resp.headers["Content-Type"] == ResponseFormat.JSON.value
+        assert resp.json() == user.to_dict()
+
+        resp = server.request(
+            "PUT",
+            f"/users/{user.id}",
             json={"email": "example@gmail.com"},
-            timeout=request_timeout,
         )
 
         assert resp.status_code == HTTPStatus.OK
@@ -178,19 +286,19 @@ class TestServer:
         assert resp.json()["status"] == "updated"
         user.email = "example@gmail.com"
 
-        resp = requests.get(
-            f"{server.base_url}/users/{user.id}",
-            timeout=request_timeout,
+        resp = server.request(
+            "GET",
+            f"/users/{user.id}",
         )
 
         assert resp.status_code == HTTPStatus.OK
         assert resp.headers["Content-Type"] == ResponseFormat.JSON.value
         assert resp.json() == user.to_dict()
 
-        resp = requests.put(
-            f"{server.base_url}/users/{user.id}",
+        resp = server.request(
+            "PUT",
+            f"/users/{user.id}",
             json={"name": "John", "email": "example@google.com"},
-            timeout=request_timeout,
         )
 
         assert resp.status_code == HTTPStatus.OK
@@ -200,27 +308,27 @@ class TestServer:
         user.name = "John"
         user.email = "example@google.com"
 
-        resp = requests.get(
-            f"{server.base_url}/users/{user.id}",
-            timeout=request_timeout,
+        resp = server.request(
+            "GET",
+            f"/users/{user.id}",
         )
 
         assert resp.status_code == HTTPStatus.OK
         assert resp.headers["Content-Type"] == ResponseFormat.JSON.value
         assert resp.json() == user.to_dict()
 
-        resp = requests.get(
-            f"{server.base_url}/users",
-            timeout=request_timeout,
+        resp = server.request(
+            "GET",
+            "/users",
         )
 
         assert resp.status_code == HTTPStatus.OK
         assert resp.headers["Content-Type"] == ResponseFormat.JSON.value
         assert resp.json() == [user.to_dict()]
 
-        resp = requests.delete(
-            f"{server.base_url}/users/{user.id}",
-            timeout=request_timeout,
+        resp = server.request(
+            "DELETE",
+            f"/users/{user.id}",
         )
 
         assert resp.status_code == HTTPStatus.OK
@@ -228,11 +336,127 @@ class TestServer:
         assert resp.json()["id"] == str(user.id)
         assert resp.json()["status"] == "deleted"
 
-        resp = requests.get(
-            f"{server.base_url}/users",
-            timeout=request_timeout,
+        resp = server.request(
+            "GET",
+            "/users",
         )
 
         assert resp.status_code == HTTPStatus.OK
         assert resp.headers["Content-Type"] == ResponseFormat.JSON.value
         assert resp.json() == []
+
+    @pytest.mark.parametrize(
+        "json_value",
+        [
+            None,
+            {},
+            {"name": "John"},
+            {"email": "example@gmail.com"},
+            {"name": "John", "email": "bad@bad.bad"},
+            123,
+            "string",
+            [1, 2, 3, 4, 5],
+        ],
+    )
+    def test_create_user_rejects_invalid_payloads(
+        self,
+        server: Server,
+        json_value: Any,
+    ):
+        resp = server.request(
+            "POST",
+            "/users",
+            json=json_value,
+        )
+
+        assert resp.status_code == HTTPStatus.BAD_REQUEST
+
+    def test_create_user_rejects_duplicate_email(self, server: Server):
+        resp = server.request(
+            "POST",
+            "/users",
+            json={"name": "John", "email": "example@gmail.com"},
+        )
+
+        user_id = resp.json()["id"]
+        assert resp.status_code == HTTPStatus.CREATED
+
+        resp = server.request(
+            "POST",
+            "/users",
+            json={"name": "John", "email": "example@gmail.com"},
+        )
+
+        assert resp.status_code == HTTPStatus.CONFLICT
+
+        server.request("DELETE", f"/users/{user_id}")
+        assert server.request("GET", "/users").json() == []
+
+    def test_get_user_returns_not_found_for_missing_user(self, server: Server):
+        resp = server.request(
+            "GET",
+            f"/users/{uuid7()}",
+        )
+
+        assert resp.status_code == HTTPStatus.NOT_FOUND
+
+    def test_update_user_rejects_invalid_or_duplicate_email(
+        self, server: Server
+    ):
+        resp = server.request(
+            "POST",
+            "/users",
+            json={"name": "John", "email": "example@gmail.com"},
+        )
+
+        user1_id = resp.json()["id"]
+
+        assert resp.status_code == HTTPStatus.CREATED
+
+        resp = server.request(
+            "POST",
+            "/users",
+            json={"name": "John", "email": "example@yandex.ru"},
+        )
+
+        user2_id = resp.json()["id"]
+
+        assert resp.status_code == HTTPStatus.CREATED
+
+        resp = server.request(
+            "PUT",
+            f"/users/{user2_id}",
+            json={"email": "example@gmail.com"},
+        )
+
+        assert resp.status_code == HTTPStatus.CONFLICT
+
+        resp = server.request(
+            "PUT",
+            f"/users/{user2_id}",
+            json={"email": "bad@bad.bad"},
+        )
+
+        assert resp.status_code == HTTPStatus.BAD_REQUEST
+
+        server.request("DELETE", f"/users/{user1_id}")
+        server.request("DELETE", f"/users/{user2_id}")
+        assert server.request("GET", "/users").json() == []
+
+    def test_update_user_returns_not_found_for_missing_user(
+        self, server: Server
+    ):
+        resp = server.request(
+            "PUT",
+            f"/users/{uuid7()}",
+            json={"email": "example@google.com"},
+        )
+
+        assert resp.status_code == HTTPStatus.NOT_FOUND
+
+    def test_delete_user_returns_not_found_for_missing_user(
+        self, server: Server
+    ):
+        resp = server.request("DELETE", f"/users/{uuid7()}")
+
+        assert resp.status_code == HTTPStatus.NOT_FOUND
