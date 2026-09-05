@@ -91,6 +91,8 @@ class RequestHandler(BaseHTTPRequestHandler):
                     response = not_allowed()
                 case self.path if is_user_id_path(self.path):
                     response = delete_user(self.path, self.user_service)
+                case "/users":
+                    response = not_allowed()
                 case _:
                     response = not_found()
         except Exception as exc:
@@ -108,6 +110,8 @@ class RequestHandler(BaseHTTPRequestHandler):
                 case self.path if is_user_id_path(self.path):
                     body = get_body(self)
                     response = update_user(self.path, body, self.user_service)
+                case "/users":
+                    response = not_allowed()
                 case _:
                     response = not_found()
         except Exception as exc:
