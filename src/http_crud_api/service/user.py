@@ -92,7 +92,7 @@ class UserService:
             raise
 
         if "name" in validated_data:
-            user.name = validated_data["name"]
+            user.name = validated_data["name"].capitalize()
 
         if "email" in validated_data:
             try:
