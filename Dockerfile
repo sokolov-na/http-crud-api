@@ -5,6 +5,6 @@ WORKDIR /app
 COPY pyproject.toml uv.lock README.md ./
 COPY src ./src
 
-RUN pip install uv && uv sync --frozen
+RUN pip install uv && uv sync --frozen --no-dev
 
 CMD ["uv", "run", "http-crud-api"]
